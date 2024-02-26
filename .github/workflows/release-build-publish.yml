@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-publish:
-    uses: ./.github/workflows/build-publish.yml
+    uses: b64hub/dx-actions/.github/workflows/build-publish.yml@main
     permissions:
       packages: write
       contents: write

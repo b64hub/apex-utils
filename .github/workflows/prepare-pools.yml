@@ -11,16 +11,8 @@ on:
     - cron: "0 02 * * *"
 
 jobs:
-  # prepare-snapshot-pool:
-  #   uses: ./.github/workflows/prepare-pool.yml
-  #   with:
-  #     pool-tag: snapshot
-  #     git-ref: ${{ inputs.git-ref }}
-  #   secrets: inherit
-
   prepare-ci-pool:
-    # needs: prepare-snapshot-pool
-    uses: ./.github/workflows/prepare-pool.yml
+    uses: b64hub/dx-actions/.github/workflows/prepare-pool.yml@main
     with:
       pool-tag: ci
       git-ref: ${{ inputs.git-ref }}
@@ -28,7 +20,7 @@ jobs:
 
   prepare-dev-pool:
     needs: prepare-ci-pool
-    uses: ./.github/workflows/prepare-pool.yml
+    uses: b64hub/dx-actions/.github/workflows/prepare-pool.yml@main
     with:
       pool-tag: dev
       git-ref: ${{ inputs.git-ref }}

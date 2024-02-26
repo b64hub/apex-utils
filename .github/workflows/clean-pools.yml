@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         pool-tag: [ci, dev]
-    uses: ./.github/workflows/clean-pool.yml
+    uses: b64hub/dx-actions/.github/workflows/clean-pool.yml@main
     with:
       pool-tag: ${{ matrix.pool-tag }}
     secrets: inherit

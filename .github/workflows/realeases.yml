@@ -8,34 +8,15 @@ on:
         required: true
 
 jobs:
-  release-sit:
-    uses: ./.github/workflows/release.yml
-    strategy:
-      matrix:
-        org: [sit]
-    if: startsWith(github.ref, 'refs/tags/release/')
-    with:
-      release-def-path: ${{ inputs.release-def-path }}
-      environment: ${{ matrix.org }}
-    environment:
-      name: ${{ matrix.org }}
-    permissions:
-      packages: write
-      contents: write
-    secrets: inherit
-
   release:
-    uses: ./.github/workflows/release.yml
-    needs: release-sit
+    uses: b64hub/dx-actions/.github/workflows/release.yml@main
     strategy:
       matrix:
-        org: [prod, uat]
+        org: [prod]
     if: startsWith(github.ref, 'refs/tags/release/')
     with:
       release-def-path: ${{ inputs.release-def-path }}
-      environment: ${{ matrix.org }}
-    environment:
-      name: ${{ matrix.org }}
+      org: ${{ matrix.org }}
     permissions:
       packages: write
       contents: write
