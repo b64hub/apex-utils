@@ -2,10 +2,10 @@ name: Quickbuild
 on:
   workflow_call:
 
-env:
-  SFPOWERSCRIPTS_SPLUNK: "${{ vars.SPLUNK }}"
-  SFPOWERSCRIPTS_SPLUNK_API_KEY: "${{ secrets.SPLUNK_API_KEY }}"
-  SFPOWERSCRIPTS_SPLUNK_HOST: ${{ vars.SPLUNK_HOST}}
+# env:
+#   SFPOWERSCRIPTS_SPLUNK: "${{ vars.SPLUNK }}"
+#   SFPOWERSCRIPTS_SPLUNK_API_KEY: "${{ secrets.SPLUNK_API_KEY }}"
+#   SFPOWERSCRIPTS_SPLUNK_HOST: ${{ vars.SPLUNK_HOST}}
 
 jobs:
   quickbuild:

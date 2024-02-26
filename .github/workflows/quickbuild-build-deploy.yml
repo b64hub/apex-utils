@@ -17,16 +17,16 @@ jobs:
     uses: ./.github/workflows/quickbuild.yml
     secrets: inherit
 
-  deploy-dev:
-    uses: ./.github/workflows/deploy.yml
-    needs: quickbuild
-    with:
-      environment: dev
-    secrets: inherit
+  # deploy-dev:
+  #   uses: ./.github/workflows/deploy.yml
+  #   needs: quickbuild
+  #   with:
+  #     environment: dev
+  #   secrets: inherit
 
   build-publish:
     uses: ./.github/workflows/build-publish.yml
-    needs: deploy-dev
+    needs: quickbuild
     permissions:
       packages: write
       contents: write
