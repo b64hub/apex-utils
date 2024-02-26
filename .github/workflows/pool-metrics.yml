@@ -1,25 +1,25 @@
-# name: "Publish Metrics for Scratch Org Pools"
-# on:
-#   workflow_dispatch:
+name: "Publish Metrics for Scratch Org Pools"
+on:
+  workflow_dispatch:
 #   schedule:
 #     # Every 30 minutes
 #     - cron: "30 * * * *"
 
-# env:
-#   SFPOWERSCRIPTS_SPLUNK: ${{ vars.SFPOWERSCRIPTS_SPLUNK }}
-#   SFPOWERSCRIPTS_SPLUNK_API_KEY: ${{ secrets.SFPOWERSCRIPTS_SPLUNK_API_KEY }}
-#   SFPOWERSCRIPTS_SPLUNK_HOST: ${{ vars.SFPOWERSCRIPTS_SPLUNK_HOST}}
+env:
+  SFPOWERSCRIPTS_SPLUNK: ${{ vars.SFPOWERSCRIPTS_SPLUNK }}
+  SFPOWERSCRIPTS_SPLUNK_API_KEY: ${{ secrets.SFPOWERSCRIPTS_SPLUNK_API_KEY }}
+  SFPOWERSCRIPTS_SPLUNK_HOST: ${{ vars.SFPOWERSCRIPTS_SPLUNK_HOST}}
 
-# jobs:
-#   publish:
-#     name: "Publish Metrics"
-#     runs-on: ubuntu-latest
-#     container: ghcr.io/flxbl-io/sfp-rc:alpha
-#     steps:
-#       - name: "Authenticate Dev Hub"
-#         run: |
-#           echo "${{ secrets.DEVHUB_SFDX_AUTH_URL }}" > ./authfile
-#           sfdx auth sfdxurl store -f authfile -a devhub
+jobs:
+  publish:
+    name: "Publish Metrics"
+    runs-on: ubuntu-latest
+    container: ghcr.io/flxbl-io/sfp-rc:alpha
+    steps:
+      - name: "Authenticate Dev Hub"
+        run: |
+          echo "${{ secrets.DEVHUB_SFDX_AUTH_URL }}" > ./authfile
+          sfdx auth sfdxurl store -f authfile -a devhub
 
-#       - name: "Publish metrics"
-#         run: sfp pool:metrics:publish -v devhub
+      - name: "Publish metrics"
+        run: sfp pool:metrics:publish -v devhub
