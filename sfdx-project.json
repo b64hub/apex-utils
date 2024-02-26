@@ -6,7 +6,12 @@
       "versionName": "ver 0.1",
       "versionNumber": "0.1.0.NEXT",
       "default": true,
-      "versionDescription": ""
+      "versionDescription": "",
+      "dependencies": [
+        {
+          "package": "Nebula Logger@4.12.9"
+        }
+      ]
     }
   ],
   "name": "b64-apex-utils",
@@ -14,6 +19,7 @@
   "sfdcLoginUrl": "https://login.salesforce.com",
   "sourceApiVersion": "59.0",
   "packageAliases": {
-    "apex-utils": "0Ho09000000oMKJCA2"
+    "apex-utils": "0Ho09000000oMKJCA2",
+    "Nebula Logger@4.12.9": "04t5Y000001Mk7BQAS"
   }
 }
