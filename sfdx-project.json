@@ -1,0 +1,12 @@
+{
+  "packageDirectories": [
+    {
+      "path": "src",
+      "default": true
+    }
+  ],
+  "name": "b64-apex-utils",
+  "namespace": "",
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "59.0"
+}

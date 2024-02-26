@@ -1,22 +1,13 @@
 {
-  "orgName": "Telenor Scratch Org",
-  "sourceOrg": "00D68000001Z7Ta",
-  "hasSampleData": false,
-  "features": [
-    "Communities",
-    "EnableSetPasswordInApi",
-    "ServiceCloud",
-    "ServiceUser",
-    "LightningServiceConsole",
-    "LiveMessage"
-  ],
-  "language": "en_US",
+  "orgName": "Demo company",
+  "edition": "Developer",
+  "features": ["EnableSetPasswordInApi"],
   "settings": {
-    "communitiesSettings": {
-      "enableNetworksEnabled": true
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
     },
-    "experienceBundleSettings": {
-      "enableExperienceBundleMetadata": true
+    "mobileSettings": {
+      "enableS1EncryptedStoragePref2": false
     }
   }
 }
