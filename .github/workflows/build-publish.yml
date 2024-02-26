@@ -40,6 +40,6 @@ jobs:
 
       - name: Publish
         run: |
-          sfp orchestrator:publish -d artifacts --npm --scope @${{ github.repository_owner }}  --gittag --pushgittag
+          sfp publish -d artifacts --npm --scope @${{ github.repository_owner }}  --gittag --pushgittag
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
