@@ -1,12 +1,19 @@
 {
   "packageDirectories": [
     {
-      "path": "src",
-      "default": true
+      "path": "./src/apex/utils",
+      "package": "apex-utils",
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "default": true,
+      "versionDescription": ""
     }
   ],
   "name": "b64-apex-utils",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "59.0"
+  "sourceApiVersion": "59.0",
+  "packageAliases": {
+    "apex-utils": "0Ho09000000oMKJCA2"
+  }
 }
