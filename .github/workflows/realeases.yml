@@ -1,0 +1,42 @@
+name: "Release"
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-def-path:
+        description: "Path to release definition file"
+        required: true
+
+jobs:
+  release-sit:
+    uses: ./.github/workflows/release.yml
+    strategy:
+      matrix:
+        org: [sit]
+    if: startsWith(github.ref, 'refs/tags/release/')
+    with:
+      release-def-path: ${{ inputs.release-def-path }}
+      environment: ${{ matrix.org }}
+    environment:
+      name: ${{ matrix.org }}
+    permissions:
+      packages: write
+      contents: write
+    secrets: inherit
+
+  release:
+    uses: ./.github/workflows/release.yml
+    needs: release-sit
+    strategy:
+      matrix:
+        org: [prod, uat]
+    if: startsWith(github.ref, 'refs/tags/release/')
+    with:
+      release-def-path: ${{ inputs.release-def-path }}
+      environment: ${{ matrix.org }}
+    environment:
+      name: ${{ matrix.org }}
+    permissions:
+      packages: write
+      contents: write
+    secrets: inherit

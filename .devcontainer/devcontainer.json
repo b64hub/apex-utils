@@ -1,0 +1,41 @@
+{
+  "name": "Salesforce Project",
+  "dockerFile": "Dockerfile",
+  "build": {
+    "args": {
+      "platform": "linux/amd64"
+    }
+  },
+  // Configure tool-specific properties.
+  "customizations": {
+    // Configure properties specific to VS Code.
+    "vscode": {
+      // Set *default* container specific settings.json values on container create.
+      "settings": {
+        "salesforcedx-vscode-apex.java.home": "/usr/lib/jvm/java-17-openjdk-amd64"
+      },
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+        "salesforce.salesforcedx-vscode",
+        "redhat.vscode-xml",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "financialforce.lana",
+        "eamodio.gitlens",
+        "GitHub.vscode-github-actions",
+        "GitHub.copilot",
+        "GitHub.vscode-pull-request-github",
+        "salesforce.sfdx-code-analyzer-vscode"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/python:1": {},
+    "ghcr.io/devcontainers-contrib/features/datadog-ci-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers-contrib/features/act-asdf:2": {}
+  },
+  "postCreateCommand": "npm install"
+}

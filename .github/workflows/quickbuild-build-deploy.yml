@@ -1,0 +1,33 @@
+name: "CI Pipeline - Auto Triggered"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src**"
+      - "src/**"
+      - "!src/**/*.md"
+      - "!src**/*.md"
+
+  workflow_dispatch:
+
+jobs:
+  quickbuild:
+    uses: ./.github/workflows/quickbuild.yml
+    secrets: inherit
+
+  deploy-dev:
+    uses: ./.github/workflows/deploy.yml
+    needs: quickbuild
+    with:
+      environment: dev
+    secrets: inherit
+
+  build-publish:
+    uses: ./.github/workflows/build-publish.yml
+    needs: deploy-dev
+    permissions:
+      packages: write
+      contents: write
+    secrets: inherit

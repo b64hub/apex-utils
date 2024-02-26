@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    target-branch: "main"
+    allow:
+      - dependency-type: "direct"
+        update-types: ["patch", "minor", "major"]
+      - dependency-type: "dev"
+        update-types: ["patch", "minor", "major"]
+    # ignore:
+    #   - dependency-name: "some-package-name"
+    #     versions: ["1.2.3"]
+    commit-message:
+      # Prefix all commit messages with "npm: "
+      prefix: "npm: "
+
+  - package-ecosystem: "docker"
+    directory: "/.devcontainer"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    registry: "ghcr.io"
+    allow:
+      - dependency-name: "dxatscale/sfpowerscripts"
+    commit-message:
+      # Prefix all commit messages with "[docker] " (no colon, but a trailing whitespace)
+      prefix: "docker: "

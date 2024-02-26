@@ -1,0 +1,16 @@
+name: "Scratch Org Pool Cleaner - Auto Scheduled"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 01 * * *"
+
+jobs:
+  clean-pool:
+    strategy:
+      matrix:
+        pool-tag: [ci, dev]
+    uses: ./.github/workflows/clean-pool.yml
+    with:
+      pool-tag: ${{ matrix.pool-tag }}
+    secrets: inherit

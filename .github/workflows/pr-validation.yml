@@ -1,0 +1,19 @@
+name: "PR Validation"
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - release/**
+    paths:
+      - "src/**"
+      - src**
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: "Validate metadata"
+    uses: ./.github/workflows/validate.yml
+    with:
+      pool-tag: ci
+    secrets: inherit

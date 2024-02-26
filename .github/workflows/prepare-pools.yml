@@ -1,0 +1,35 @@
+name: "Replenish CI Pools - Auto Triggered"
+
+on:
+  workflow_dispatch:
+    inputs:
+      git-ref:
+        description: "Commit Id from where the pools should be created"
+        required: false
+        default: "main"
+  schedule:
+    - cron: "0 02 * * *"
+
+jobs:
+  # prepare-snapshot-pool:
+  #   uses: ./.github/workflows/prepare-pool.yml
+  #   with:
+  #     pool-tag: snapshot
+  #     git-ref: ${{ inputs.git-ref }}
+  #   secrets: inherit
+
+  prepare-ci-pool:
+    # needs: prepare-snapshot-pool
+    uses: ./.github/workflows/prepare-pool.yml
+    with:
+      pool-tag: ci
+      git-ref: ${{ inputs.git-ref }}
+    secrets: inherit
+
+  prepare-dev-pool:
+    needs: prepare-ci-pool
+    uses: ./.github/workflows/prepare-pool.yml
+    with:
+      pool-tag: dev
+      git-ref: ${{ inputs.git-ref }}
+    secrets: inherit

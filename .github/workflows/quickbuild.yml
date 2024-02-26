@@ -1,0 +1,34 @@
+name: Quickbuild
+on:
+  workflow_call:
+
+env:
+  SFPOWERSCRIPTS_SPLUNK: "${{ vars.SPLUNK }}"
+  SFPOWERSCRIPTS_SPLUNK_API_KEY: "${{ secrets.SPLUNK_API_KEY }}"
+  SFPOWERSCRIPTS_SPLUNK_HOST: ${{ vars.SPLUNK_HOST}}
+
+jobs:
+  quickbuild:
+    name: "Quickbuild packages"
+    runs-on: ubuntu-latest
+    container: ghcr.io/flxbl-io/sfp-rc:alpha
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: "Authenticate Dev Hub"
+        run: |
+          echo "${{ secrets.DEVHUB_SFDX_AUTH_URL }}" > ./authfile
+          sfdx auth:sfdxurl:store -f authfile -a devhub
+
+      - name: "Create packages"
+        id: sfpowerscripts-build
+        run: |
+          sfp orchestrator:quickbuild -v devhub --diffcheck --buildnumber ${GITHUB_RUN_ID} --branch ${GITHUB_REF#refs/heads/}
+
+      # Publish artifacts
+      - uses: actions/upload-artifact@v2
+        with:
+          name: quickbuild-artifacts
+          path: artifacts
