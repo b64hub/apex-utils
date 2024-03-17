@@ -18,7 +18,7 @@ jobs:
     secrets: inherit
 
   build-publish:
-    uses: b64hub/dx-axtions/.github/workflows/build-publish.yml@main
+    uses: b64hub/dx-actions/.github/workflows/build-publish.yml@main
     needs: quickbuild
     permissions:
       packages: write
