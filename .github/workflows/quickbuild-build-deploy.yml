@@ -1,18 +1,26 @@
-name: "Deployment pipeline"
+name: "CI Pipeline - Auto Triggered"
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src**"
+      - "src/**"
+      - "!src/**/*.md"
+      - "!src**/*.md"
+
   workflow_dispatch:
-    inputs:
-      environment:
-        type: string
-        default: dev
-        required: true
 
 jobs:
-  deploy-env:
-    uses: b64hub/dx-actions/.github/workflows/deploy.yml@main
-    needs: quickbuild
-    with:
-      environment: ${{ inputs.environment }}
+  quickbuild:
+    uses: b64hub/dx-actions/.github/workflows/quickbuild.yml@main
     secrets: inherit
 
+  build-publish:
+    uses: b64hub/dx-axtions/.github/workflows/build-publish.yml@main
+    needs: quickbuild
+    permissions:
+      packages: write
+      contents: write
+    secrets: inherit
