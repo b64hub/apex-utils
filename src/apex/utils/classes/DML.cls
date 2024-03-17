@@ -24,11 +24,10 @@ public virtual class DML implements IDML {
         try {
             List<Database.SaveResult> result = Database.insert(
                 records,
-                this.dmlOptions
+                dmlOptions
             );
         } catch (Exception e) {
             Logger.error(e.getMessage());
-            Logger.saveLog();
             throw e;
         }
         return records;
@@ -46,7 +45,6 @@ public virtual class DML implements IDML {
             );
         } catch (Exception e) {
             Logger.error(e.getMessage());
-            Logger.saveLog();
             throw e;
         }
         return records;
@@ -61,7 +59,6 @@ public virtual class DML implements IDML {
             List<Database.UpsertResult> result = Database.upsert(records);
         } catch (Exception e) {
             Logger.error(e.getMessage());
-            Logger.saveLog();
             throw e;
         }
         return records;
@@ -78,7 +75,6 @@ public virtual class DML implements IDML {
             );
         } catch (Exception e) {
             Logger.error(e.getMessage());
-            Logger.saveLog();
             throw e;
         }
         return records;
@@ -96,7 +92,6 @@ public virtual class DML implements IDML {
             );
         } catch (Exception e) {
             Logger.error(e.getMessage());
-            Logger.saveLog();
             throw e;
         }
     }
@@ -118,4 +113,27 @@ public virtual class DML implements IDML {
         Database.emptyRecycleBin(records);
     }
 
+    public virtual void doPublish(List<SObject> events) {
+        EventBus.publish(events);
+    }
+
+    public class MockInsertHook implements Callable {
+        public Object call(String stubbedMethodName, Map<String, Object> args) {
+            if (
+                stubbedMethodName == 'doInsert' ||
+                stubbedMethodName == 'doUpsert'
+            ) {
+                for (SObject record : (List<SObject>) args.get('records')) {
+                    record.put(
+                        'Id',
+                        TestFactory.generateMockId(
+                            record.getSObjectType().getDescribe().getName()
+                        )
+                    );
+                }
+            }
+
+            return null;
+        }
+    }
 }

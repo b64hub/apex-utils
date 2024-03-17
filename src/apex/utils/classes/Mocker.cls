@@ -23,7 +23,7 @@ public class Mocker implements System.StubProvider {
         }
 
         public IMockedMethod get(Object stubbedObject, String methodName) {
-            String key = Mocker.generateKey(stubbedObject, methodName, null);
+            String key = Mocker.generateKey(stubbedObject, methodName);
 
             if (this.methodHooks.containsKey(key)) {
                 return this.methodHooks.get(key);
@@ -36,8 +36,7 @@ public class Mocker implements System.StubProvider {
             this.methodHooks.put(
                 Mocker.generateKey(
                     methodCall.getStubbedObject(),
-                    methodCall.getMethodName(),
-                    methodCall.getArgs()
+                    methodCall.getMethodName()
                 ),
                 methodCall
             );
@@ -86,13 +85,13 @@ public class Mocker implements System.StubProvider {
 
         Callable hook;
 
-        Integer callCount;
+        List<Map<String, Object>> callArgs;
 
         public MockedMethod(Object stubbedObject, String stubbedMethodName) {
             this.stubbedObject = stubbedObject;
             this.stubbedMethodName = stubbedMethodName;
 
-            this.callCount = 0;
+            this.callArgs = new List<Map<String, Object>>();
         }
 
         public Object getStubbedObject() {
@@ -108,7 +107,7 @@ public class Mocker implements System.StubProvider {
         }
 
         public Object call(String stubbedMethodName, Map<String, Object> args) {
-            this.callCount++;
+            this.callArgs.add(args);
             return this.hook.call(stubbedMethodName, args);
         }
 
@@ -149,13 +148,22 @@ public class Mocker implements System.StubProvider {
     }
 
     public void assertCalled(Object stubbedObject, String stubbedMethodName) {
-        this.assertCalled(stubbedObject, stubbedMethodName, null);
+        this.assertCalled(stubbedObject, stubbedMethodName, null, null);
     }
 
     public void assertCalled(
         Object stubbedObject,
         String stubbedMethodName,
         Integer times
+    ) {
+        this.assertCalled(stubbedObject, stubbedMethodName, times, null);
+    }
+
+    public void assertCalled(
+        Object stubbedObject,
+        String stubbedMethodName,
+        Integer times,
+        Map<String, Object> args
     ) {
         MockedMethod methodCall = (MockedMethod) this.registry.get(
             stubbedObject,
@@ -167,12 +175,23 @@ public class Mocker implements System.StubProvider {
             return;
         }
 
+        Integer callCount = 0;
+        if (args == null) {
+            callCount = methodCall.callArgs.size();
+        } else {
+            for (Map<String, Object> callArgs : methodCall.callArgs) {
+                if (args.equals(callArgs)) {
+                    callCount++;
+                }
+            }
+        }
+
         if (times == null) {
-            Assert.isTrue(methodCall.callCount > 0, 'Method not called');
+            Assert.isTrue(callCount > 0, 'Method not called');
         } else {
             Assert.isTrue(
-                methodCall.callCount == times,
-                'Method called ' + methodCall.callCount + ' times'
+                callCount == times,
+                'Method called ' + callCount + ' times'
             );
         }
     }
@@ -192,25 +211,10 @@ public class Mocker implements System.StubProvider {
 
     private static String generateKey(
         Object stubbedObject,
-        String stubbedMethodName,
-        Map<String, Object> args
+        String stubbedMethodName
     ) {
-        String key =
-            String.valueOf(System.hashCode(stubbedObject)) +
+        return String.valueOf(System.hashCode(stubbedObject)) +
             '.' +
             stubbedMethodName;
-        if (args != null && args.size() > 0) {
-            key += '(';
-            for (String argName : args.keySet()) {
-                key +=
-                    argName +
-                    '=' +
-                    String.valueOf(System.hashCode(args.get(argName))) +
-                    ',';
-            }
-            key += ')';
-        }
-        System.debug(key);
-        return key;
     }
 }

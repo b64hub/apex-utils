@@ -7,11 +7,12 @@ public abstract class SObjectSelector {
 
     public SObjectSelector(String sObjectType) {
         this.sObjectType = sObjectType;
+        this.defaultFields = new List<String>{ 'Id' };
     }
 
     public SObjectSelector(String sObjectType, List<String> fields) {
         this.sObjectType = sObjectType;
-        this.defaultFields = defaultFields;
+        this.defaultFields = fields;
     }
 
     public virtual List<SObject> getWhere(String field, Object value) {
@@ -26,6 +27,14 @@ public abstract class SObjectSelector {
         QueryBuilder builder = new QueryBuilder(this.sObjectType)
             .selectFields(this.defaultFields)
             .addFilter(new QueryBuilder.Condition('Id').isIn(':ids'));
+
+        return Database.query(builder.toString());
+    }
+
+    public virtual List<SObject> getWhereIn(String field, List<Object> values) {
+        QueryBuilder builder = new QueryBuilder(this.sObjectType)
+            .selectFields(this.defaultFields)
+            .addFilter(new QueryBuilder.Condition(field).isIn(':values'));
 
         return Database.query(builder.toString());
     }

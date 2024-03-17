@@ -18,14 +18,18 @@ public class QueryBuilderTest {
     static void testConditionBuilder() {
         QueryBuilder.ConditionBuilder builder = new QueryBuilder.ConditionBuilder();
 
-        builder.start('Name').matches('"Michael%"');
-        builder.andWith('Title').equals('"Regional Manager"');
+        builder.andWith(
+            new QueryBuilder.Condition('Name').matches('"Michael%"')
+        );
+        builder.andWith(
+            new QueryBuilder.Condition('Title').equals('"Regional Manager"')
+        );
         builder.orWith(
             new QueryBuilder.Condition('Title')
                 .notEquals('"Assistant to the Regional Manager"')
         );
-        builder.andWith('Age').greaterThan(40);
-        builder.add('AND MailingCity = "Scranton"');
+        builder.andWith(new QueryBuilder.Condition('Age').greaterThan(40));
+        builder.andWith('MailingCity = "Scranton"');
 
         Assert.areEqual(
             'Name LIKE "Michael%" AND Title = "Regional Manager" OR Title != "Assistant to the Regional Manager" AND Age > 40 AND MailingCity = "Scranton"',
@@ -37,8 +41,12 @@ public class QueryBuilderTest {
     static void testQueryWithCondition() {
         QueryBuilder.ConditionBuilder builder = new QueryBuilder.ConditionBuilder();
 
-        builder.add(new QueryBuilder.Condition('Name').matches('"Michael%"'));
-        builder.orWith('Title').equals('"Regional Manager"');
+        builder.andWith(
+            new QueryBuilder.Condition('Name').matches('"Michael%"')
+        );
+        builder.orWith(
+            new QueryBuilder.Condition('Title').equals('"Regional Manager"')
+        );
         builder.andWith(new QueryBuilder.Condition('Age').lessThan(60));
 
         QueryBuilder subQuery = new QueryBuilder('Account__r')
