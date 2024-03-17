@@ -30,4 +30,12 @@ public abstract class SObjectSelector {
 
         return Database.query(builder.toString());
     }
+
+    public virtual List<SObject> getWhereIn(String field, List<Object> values) {
+        QueryBuilder builder = new QueryBuilder(this.sObjectType)
+            .selectFields(this.defaultFields)
+            .addFilter(new QueryBuilder.Condition(field).isIn(':values'));
+
+        return Database.query(builder.toString());
+    }
 }

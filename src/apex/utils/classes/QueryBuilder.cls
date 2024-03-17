@@ -56,7 +56,6 @@ public class QueryBuilder {
     }
 
     public interface ICondition {
-        void setLogical(String logical);
         String toString();
     }
 
@@ -64,12 +63,14 @@ public class QueryBuilder {
         public String field;
         public String operator;
         public String value;
-        public String logical;
-
-        public ConditionBuilder builder;
+        public String raw;
 
         public Condition(String field) {
             this.field = field;
+        }
+
+        public Condition(String raw, Boolean isRaw) {
+            this.raw = raw;
         }
 
         public ICondition equals(Object value) {
@@ -104,85 +105,96 @@ public class QueryBuilder {
 
         private ICondition setValue(Object value) {
             this.value = String.valueOf(value);
-            if (this.builder != null) {
-                this.builder.add(this.toString());
-                return this.builder;
-            }
             return this;
         }
 
-        public virtual void setLogical(String logical) {
+        public virtual override String toString() {
+            if (this.raw != null) {
+                return this.raw;
+            }
+            return this.field + ' ' + this.operator + ' ' + this.value;
+        }
+    }
+
+    public class ConditionNode implements ICondition {
+        ICondition condition;
+        String logical;
+
+        public ConditionNode left;
+        public ConditionNode right;
+
+        public ConditionNode(ICondition condition) {
+            this.condition = condition;
+        }
+
+        public ConditionNode(
+            String logical,
+            ConditionNode left,
+            ConditionNode right
+        ) {
+            this.setLogical(logical);
+            this.left = left;
+            this.right = right;
+        }
+
+        public void setLogical(String logical) {
             this.logical = logical;
         }
 
-        public void setBuilder(ConditionBuilder builder) {
-            this.builder = builder;
-        }
-
-        public virtual override String toString() {
-            String conditionString = '';
-            conditionString += this.logical != null ? this.logical + ' ' : '';
-            conditionString += field + ' ' + operator + ' ' + value;
-            return conditionString;
+        public override String toString() {
+            if (this.condition != null) {
+                return this.condition.toString();
+            }
+            if (this.logical != null) {
+                return this.left.toString() +
+                    ' ' +
+                    this.logical +
+                    ' ' +
+                    this.right.toString();
+            }
+            return '';
         }
     }
 
     public class ConditionBuilder implements ICondition {
-        List<String> conditions;
-        String logical;
+        ConditionNode root;
 
         public ConditionBuilder() {
-            this.conditions = new List<String>();
         }
 
-        public virtual void setLogical(String logical) {
-            this.logical = logical;
+        public ConditionBuilder addNode(String logical, ConditionNode node) {
+            if (this.root == null) {
+                this.root = node;
+            } else {
+                this.root = new ConditionNode(logical, this.root, node);
+            }
+            return this;
         }
 
         public ConditionBuilder andWith(ICondition condition) {
-            condition.setLogical('AND');
-            this.conditions.add(condition.toString());
-            return this;
+            return this.addNode('AND', new ConditionNode(condition));
         }
 
-        public Condition andWith(String field) {
-            Condition condition = new Condition(field);
-            condition.setBuilder(this);
-            condition.setLogical('AND');
-            return condition;
+        public ConditionBuilder andWith(String condition) {
+            return this.addNode(
+                'AND',
+                new ConditionNode(new Condition(condition, true))
+            );
         }
 
         public ConditionBuilder orWith(ICondition condition) {
-            condition.setLogical('OR');
-            this.conditions.add(condition.toString());
-            return this;
+            return this.addNode('OR', new ConditionNode(condition));
         }
 
-        public Condition orWith(String field) {
-            Condition condition = new Condition(field);
-            condition.setBuilder(this);
-            condition.setLogical('OR');
-            return condition;
-        }
-
-        public ConditionBuilder add(ICondition condition) {
-            this.conditions.add(condition.toString());
-            return this;
-        }
-
-        public Condition start(String field) {
-            Condition condition = new Condition(field);
-            condition.setBuilder(this);
-            return condition;
-        }
-
-        public ConditionBuilder add(String condition) {
-            this.conditions.add(condition);
-            return this;
+        public ConditionBuilder orWith(String condition) {
+            return this.addNode(
+                'OR',
+                new ConditionNode(new Condition(condition, true))
+            );
         }
 
         public override String toString() {
-            return String.join(conditions, ' ');
+            return this.root.toString();
         }
     }
 
