@@ -11,7 +11,7 @@ public class QueryBuilder {
 
     public virtual class Query implements IQuery {
         public String sObjectType;
-        public List<String> fields;
+        public Set<String> fields;
         public List<IQuery> subQueries;
         public String filter;
 
@@ -20,7 +20,7 @@ public class QueryBuilder {
 
         public Query(String sObjectType) {
             this.sObjectType = sObjectType;
-            this.fields = new List<String>();
+            this.fields = new Set<String>();
             this.subQueries = new List<Query>();
             this.filter = null;
             this.sortBy = null;

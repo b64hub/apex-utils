@@ -7,11 +7,12 @@ public abstract class SObjectSelector {
 
     public SObjectSelector(String sObjectType) {
         this.sObjectType = sObjectType;
+        this.defaultFields = new List<String>{ 'Id' };
     }
 
     public SObjectSelector(String sObjectType, List<String> fields) {
         this.sObjectType = sObjectType;
-        this.defaultFields = defaultFields;
+        this.defaultFields = fields;
     }
 
     public virtual List<SObject> getWhere(String field, Object value) {

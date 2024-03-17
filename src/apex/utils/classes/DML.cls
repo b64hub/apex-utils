@@ -24,7 +24,7 @@ public virtual class DML implements IDML {
         try {
             List<Database.SaveResult> result = Database.insert(
                 records,
-                this.dmlOptions
+                dmlOptions
             );
         } catch (Exception e) {
             Logger.error(e.getMessage());
@@ -117,5 +117,4 @@ public virtual class DML implements IDML {
     public virtual void doHardDelete(List<SObject> records) {
         Database.emptyRecycleBin(records);
     }
-
 }
