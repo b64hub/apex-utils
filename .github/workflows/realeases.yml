@@ -9,7 +9,7 @@ on:
 
 jobs:
   release:
-    uses: b64hub/dx-actions/.github/workflows/release.yml@main
+    uses: b64hub/sf-actions/.github/workflows/release.yml@main
     strategy:
       matrix:
         org: [prod]

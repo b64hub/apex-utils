@@ -12,7 +12,7 @@ on:
 
 jobs:
   prepare-ci-pool:
-    uses: b64hub/dx-actions/.github/workflows/prepare-pool.yml@main
+    uses: b64hub/sf-actions/.github/workflows/prepare-pool.yml@main
     with:
       pool-tag: ci
       git-ref: ${{ inputs.git-ref }}
@@ -20,7 +20,7 @@ jobs:
 
   prepare-dev-pool:
     needs: prepare-ci-pool
-    uses: b64hub/dx-actions/.github/workflows/prepare-pool.yml@main
+    uses: b64hub/sf-actions/.github/workflows/prepare-pool.yml@main
     with:
       pool-tag: dev
       git-ref: ${{ inputs.git-ref }}

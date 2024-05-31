@@ -13,7 +13,7 @@ on:
 jobs:
   validate:
     name: "Validate metadata"
-    uses: b64hub/dx-actions/.github/workflows/validate.yml@main
+    uses: b64hub/sf-actions/.github/workflows/validate.yml@main
     with:
       pool-tag: ci
     secrets: inherit
