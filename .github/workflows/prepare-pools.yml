@@ -7,8 +7,8 @@ on:
         description: "Commit Id from where the pools should be created"
         required: false
         default: "main"
-  schedule:
-    - cron: "0 02 * * *"
+  # schedule:
+  #   - cron: "0 02 * * *"
 
 jobs:
   prepare-ci-pool:
