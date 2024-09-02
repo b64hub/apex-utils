@@ -65,4 +65,13 @@ public abstract class RecordCollection {
         }
         return changedRecords;
     }
+
+    public List<Object> getValues(String field) {
+        List<Object> values = new List<Object>();
+        for (SObject record : this.records) {
+            values.add(record.get(field));
+        }
+        return values;
+    }
+
 }
