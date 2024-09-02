@@ -329,9 +329,9 @@ Please note that this is a basic documentation and you might need to adjust it b
 
 `SObjectSelector` is a base class for selector classes, following Enterprise patterns. It defines which sObjectType to query and the defaultfields. It also implements some common queries, like getting where a field equals a certain value.
 
-# SObjectDomain
+# RecordCollection
 
-`SObjectDomain` is a base class for domain classes, following Enterprise patterns. It defines sObjectType and defines a list of records.
+`RecordCollection` is a base class for domain classes, following Enterprise patterns. It defines sObjectType and defines a list of records.
 
 # FilterBuilder
 

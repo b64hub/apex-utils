@@ -1,21 +1,21 @@
-public abstract class SObjectDomain {
+public abstract class RecordCollection {
     public List<SObject> records;
     public String sObjectType;
 
-    public SObjectDomain(String sObjectType, List<SObject> records) {
+    public RecordCollection(String sObjectType, List<SObject> records) {
         this.records = records;
         this.sObjectType = sObjectType;
     }
 
-    public SObjectDomain() {
+    public RecordCollection() {
         this(null, new List<SObject>());
     }
 
-    public SObjectDomain(List<SObject> records) {
+    public RecordCollection(List<SObject> records) {
         this(records.get(0)?.getSObjectType().getDescribe().getName(), records);
     }
 
-    public SObjectDomain(String sObjectType) {
+    public RecordCollection(String sObjectType) {
         this(sObjectType, new List<SObject>());
     }
 
