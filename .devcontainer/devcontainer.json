@@ -31,11 +31,11 @@
   },
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/python:1": {},
-    "ghcr.io/devcontainers-contrib/features/datadog-ci-cli:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers-contrib/features/act-asdf:2": {}
+    // "ghcr.io/devcontainers/features/github-cli:1": {},
+    // "ghcr.io/devcontainers/features/python:1": {},
+    // "ghcr.io/devcontainers-contrib/features/datadog-ci-cli:1": {},
+    // "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    // "ghcr.io/devcontainers-contrib/features/act-asdf:2": {}
   },
   "postCreateCommand": "npm install"
 }
