@@ -2,6 +2,9 @@ public virtual class RecordCollection {
     public List<SObject> records;
     public String sObjectType;
 
+    @TestVisible
+    protected Map<String, Object> attributes = new Map<String, Object>();
+
     public RecordCollection(String sObjectType, List<SObject> records) {
         this.records = records;
         this.sObjectType = sObjectType;
@@ -76,6 +79,40 @@ public virtual class RecordCollection {
 
     public List<Id> getIds() {
         return new List<Id>(new Map<Id, SObject>(this.records).keySet());
+    }
+
+
+    public class AttributeException extends Exception {
+        String attribute;
+
+        public AttributeException(String attribute, String message) {
+            super(message);
+            this.attribute = attribute;
+        }
+    }
+
+    public void addAttribute(String key, Object value) {
+        this.attributes.put(key, value);
+    }
+
+    public Object getAttribute(String key) {
+        Object attribute = this.attributes.get(key);
+        if (attribute == null) {
+            throw new AttributeException(key, 'Attribute not found: ' + key);
+        }
+        return attribute;
+    }
+
+    public void removeAttribute(String key) {
+        this.attributes.remove(key);
+    }
+
+    public void clearAttributes() {
+        this.attributes.clear();
+    }
+
+    public void extractAttributes(String field) {
+        this.attributes.put(field, this.getValues(field));
     }
 
 }
