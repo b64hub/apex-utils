@@ -1,4 +1,4 @@
-public abstract class RecordCollection {
+public virtual class RecordCollection {
     public List<SObject> records;
     public String sObjectType;
 
@@ -72,6 +72,10 @@ public abstract class RecordCollection {
             values.add(record.get(field));
         }
         return values;
+    }
+
+    public List<Id> getIds() {
+        return new List<Id>(new Map<Id, SObject>(this.records).keySet());
     }
 
 }
