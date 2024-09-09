@@ -81,6 +81,21 @@ public virtual class RecordCollection {
         return new List<Id>(new Map<Id, SObject>(this.records).keySet());
     }
 
+    public Map<Object, List<SObject>> segmentOnField(String field) {
+        Map<Object, List<SObject>> recordsByFieldValue = new Map<Object, List<SObject>>;
+        for (SObject record : this.records) {
+            Object fieldValue = record.get(field);
+
+            if (!recordsByFieldValue.containsKey(fieldValue)) {
+                recordsByFieldValue.put(fieldValue, new List<SObject>());
+            }
+
+            recordsByFieldValue.get(fieldValue).add(record);
+        }
+
+        return recordsByFieldValue;
+    }
+
 
     public class AttributeException extends Exception {
         String attribute;
