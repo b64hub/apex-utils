@@ -1,42 +1,65 @@
 public virtual class RecordCollection {
     public List<SObject> records;
-    public String sObjectType;
 
     @TestVisible
     protected Map<String, Object> attributes = new Map<String, Object>();
 
-    public RecordCollection(String sObjectType, List<SObject> records) {
-        this.records = records;
-        this.sObjectType = sObjectType;
-    }
-
-    public RecordCollection() {
-        this(null, new List<SObject>());
-    }
+    public class TypeException extends Exception {}
 
     public RecordCollection(List<SObject> records) {
-        this(records.get(0)?.getSObjectType().getDescribe().getName(), records);
+        if (records.getSObjectType() == null) {
+            throw new TypeException('List must have a defined sObjectType');
+        }
+
+        this.records = records;
     }
 
-    public RecordCollection(String sObjectType) {
-        this(sObjectType, new List<SObject>());
+    public void add(SObject record) {
+        if (record.getSObjectType() == null || record.getSObjectType() != this.getSObjectType()) {
+            throw new TypeException('Can only add record of same sObjectType. Tried adding record of ' + 
+                record.getSObjectType() + 
+                ' to list of ' + 
+                this.getSObjectType()
+            );
+        }
+
+        this.records.add(record);
     }
 
-    public void addRecords(List<SObject> records) {
+    public void add(List<SObject> records) {
+        if (records.getSObjectType() == null || records.getSObjectType() != this.getSObjectType()) {
+            throw new TypeException('Can only add list of same sObjectType. Tried adding list of ' + 
+                records.getSObjectType() + 
+                ' to list of ' + 
+                this.getSObjectType()
+            );
+        }
+
         this.records.addAll(records);
+    }
+
+    public void add(RecordCollection collection) {
+        if (collection.getSObjectType() != this.getSObjectType()) {
+            throw new TypeException('Can only add collection of same sObjectType. Tried adding collection of ' + 
+                collection.getSObjectType() + 
+                ' to collection of ' + 
+                this.getSObjectType()
+            );
+        }
+
+        this.records.addAll(collection.getRecords());
     }
 
     public List<SObject> getRecords() {
         return this.records;
     }
 
-    public String getSObjectType() {
-        return this.sObjectType;
+    public Schema.SObjectType getSObjectType() {
+        return this.records.getSObjectType();
     }
 
     public Map<String, Schema.RecordTypeInfo> getRecordTypeInfos() {
-        return Schema.getGlobalDescribe()
-            .get(this.sObjectType)
+        return this.getSObjectType()
             .getDescribe()
             .getRecordTypeInfosByDeveloperName();
     }
@@ -82,7 +105,7 @@ public virtual class RecordCollection {
     }
 
     public Map<Object, List<SObject>> segmentOnField(String field) {
-        Map<Object, List<SObject>> recordsByFieldValue = new Map<Object, List<SObject>>;
+        Map<Object, List<SObject>> recordsByFieldValue = new Map<Object, List<SObject>>();
         for (SObject record : this.records) {
             Object fieldValue = record.get(field);
 
