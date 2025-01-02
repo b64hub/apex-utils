@@ -1,8 +1,16 @@
 public class QueryBuilder {
     private Query query;
+    public Config config = new Config();
+
+    Map<String, Object> bindVariables = new Map<String, Object>();
+
+    public class Config {
+        public String defaultChain = 'AND';
+    }
 
     public QueryBuilder(Schema.SObjectType sObjectType) {
         this.query = new Query(sObjectType.getDescribe().getName());
+        this.query.filterChain = this.config.defaultChain;
     }
 
     public QueryBuilder(String sObjectType) {
@@ -13,18 +21,39 @@ public class QueryBuilder {
         public String sObjectType;
         public Set<String> fields;
         public List<IQuery> subQueries;
-        public String filter;
+        public List<ICondition> filters;
 
         public String sortBy;
         public String limitClause;
+
+        public String filterChain = 'AND';
 
         public Query(String sObjectType) {
             this.sObjectType = sObjectType;
             this.fields = new Set<String>();
             this.subQueries = new List<Query>();
-            this.filter = null;
+            this.filters = new List<ICondition>();
             this.sortBy = null;
             this.limitClause = null;
+        }
+
+        private String resolveFilter() {
+            if (filters.size() == 1) {
+                return this.filters[0].toString();
+            }
+
+            String filter = '';
+
+            for (ICondition condition : filters) {
+                filter +=
+                    '(' +
+                    condition.toString() +
+                    ') ' +
+                    this.filterChain +
+                    ' ';
+            }
+
+            return filter.removeEnd(' ' + this.filterChain + ' ');
         }
 
         public override String toString() {
@@ -39,8 +68,8 @@ public class QueryBuilder {
 
             queryString += ' FROM ' + sObjectType;
 
-            if (filter != null) {
-                queryString += ' WHERE ' + filter;
+            if (!this.filters.isEmpty()) {
+                queryString += ' WHERE ' + this.resolveFilter();
             }
 
             if (sortBy != null) {
@@ -60,59 +89,68 @@ public class QueryBuilder {
     }
 
     public virtual class Condition implements ICondition {
+        public String expression;
+
         public String field;
         public String operator;
-        public String value;
-        public String raw;
+        public Object value;
 
-        public Condition(String field) {
-            this.field = field;
+        public Condition(String expression) {
+            if (expression.containsWhitespace()) {
+                this.expression = expression;
+            } else {
+                this.field = expression;
+            }
         }
 
-        public Condition(String raw, Boolean isRaw) {
-            this.raw = raw;
-        }
-
-        public ICondition equals(Object value) {
+        public String equals(Object value) {
             this.operator = '=';
             return this.setValue(value);
         }
 
-        public ICondition notEquals(Object value) {
+        public String notEquals(Object value) {
             this.operator = '!=';
             return this.setValue(value);
         }
 
-        public ICondition greaterThan(Object value) {
+        public String greaterThan(Object value) {
             this.operator = '>';
             return this.setValue(value);
         }
 
-        public ICondition lessThan(Object value) {
+        public String lessThan(Object value) {
             this.operator = '<';
             return this.setValue(value);
         }
 
-        public ICondition isIn(Object value) {
+        public String isIn(Object value) {
             this.operator = 'IN';
             return this.setValue(value);
         }
 
-        public ICondition matches(Object value) {
+        public String matches(Object value) {
             this.operator = 'LIKE';
             return this.setValue(value);
         }
 
-        private ICondition setValue(Object value) {
+        public String inSubQuery(IQuery subQuery) {
+            this.operator = 'IN';
+            return this.setValue('( ' + subQuery.toString() + ' )');
+        }
+
+        private String setValue(Object value) {
             this.value = String.valueOf(value);
-            return this;
+            this.expression =
+                this.field +
+                ' ' +
+                this.operator +
+                ' ' +
+                this.value;
+            return this.expression;
         }
 
         public virtual override String toString() {
-            if (this.raw != null) {
-                return this.raw;
-            }
-            return this.field + ' ' + this.operator + ' ' + this.value;
+            return this.expression;
         }
     }
 
@@ -125,6 +163,10 @@ public class QueryBuilder {
 
         public ConditionNode(ICondition condition) {
             this.condition = condition;
+        }
+
+        public ConditionNode(String expression) {
+            this.condition = new Condition(expression);
         }
 
         public ConditionNode(
@@ -178,7 +220,7 @@ public class QueryBuilder {
         public ConditionBuilder andWith(String condition) {
             return this.addNode(
                 'AND',
-                new ConditionNode(new Condition(condition, true))
+                new ConditionNode(new Condition(condition))
             );
         }
 
@@ -189,7 +231,7 @@ public class QueryBuilder {
         public ConditionBuilder orWith(String condition) {
             return this.addNode(
                 'OR',
-                new ConditionNode(new Condition(condition, true))
+                new ConditionNode(new Condition(condition))
             );
         }
 
@@ -209,15 +251,13 @@ public class QueryBuilder {
     }
 
     public QueryBuilder addFilter(String condition) {
-        if (this.query.filter == null) {
-            this.query.filter = '';
-        }
-        this.query.filter += condition;
+        this.query.filters.add(new Condition(condition));
         return this;
     }
 
     public QueryBuilder addFilter(ICondition condition) {
-        return this.addFilter(condition.toString());
+        this.query.filters.add(condition);
+        return this;
     }
 
     public QueryBuilder addSubQuery(IQuery query) {
@@ -237,6 +277,15 @@ public class QueryBuilder {
 
     public IQuery getQuery() {
         return this.query;
+    }
+
+    public QueryBuilder setVariable(String variable, Object value) {
+        this.bindVariables.put(variable, value);
+        return this;
+    }
+
+    public Map<String, Object> getVariables() {
+        return this.bindVariables;
     }
 
     public override String toString() {

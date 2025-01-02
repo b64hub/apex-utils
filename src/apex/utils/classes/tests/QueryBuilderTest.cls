@@ -65,4 +65,27 @@ public class QueryBuilderTest {
             qb.toString()
         );
     }
+
+    @IsTest
+    static void testMultipleFilters() {
+        List<String> cities = new List<String>{ 'Scranton', 'New York' };
+        String name = 'Dunder Mifflin';
+
+        QueryBuilder qb = new QueryBuilder('Account')
+            .selectFields(new List<String>{ 'Id', 'Name' })
+            .addFilter('Name = :name')
+            .addFilter(new QueryBuilder.Condition('BillingCity').isIn(':cities'))
+            .sortBy('Name ASC')
+            .setLimit(10);
+
+        qb.setVariable(':name', name);
+        qb.setVariable(':cities', cities);
+        
+        Assert.areEqual(
+            'SELECT Id, Name FROM Account WHERE (Name = :name) AND (BillingCity IN :cities) ORDER BY Name ASC LIMIT 10',
+            qb.toString()
+        );
+        Assert.areEqual(cities, qb.getVariables().get(':cities'));
+        Assert.areEqual(name, qb.getVariables().get(':name'));
+    }
 }
