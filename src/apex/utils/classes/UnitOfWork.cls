@@ -1,20 +1,13 @@
 public class UnitOfWork {
-    IDML dmlHandler;
     UnitOfWork.TransactionControls controls;
-
     public static UnitOfWork instance;
     public Map<String, ITransaction> transactions = new Map<String, ITransaction>();
 
-    public UnitOfWork(
-        IDML dmlHandler,
-        UnitOfWork.TransactionControls controls
-    ) {
-        this.dmlHandler = dmlHandler;
+    public UnitOfWork(UnitOfWork.TransactionControls controls) {
         this.controls = controls;
     }
 
     public UnitOfWork() {
-        this.dmlHandler = (IDML) TypeFactory.newInstance('DML');
         this.controls = new UnitOfWork.TransactionControls();
     }
 
@@ -51,13 +44,17 @@ public class UnitOfWork {
         }
     }
 
+    public void setControls(UnitOfWork.TransactionControls controls) {
+        this.controls = controls;
+    }
+
     public class TransactionException extends Exception {
     }
 
     /**
      * Saves all the registered DML transactions.
      * It sorts the transactions, logs the execution of each transaction, and executes each transaction.
-     * If a transaction fails, it logs the error, re-adds the transaction to the map, and rethrows the exception.
+     * If a transaction fails, it logs the error, puts the transaction back to the map, and rethrows the exception.
      */
     public void save() {
         for (String key : this.sortTransactions()) {
@@ -69,12 +66,24 @@ public class UnitOfWork {
             }
 
             try {
-                trx.execute(this.dmlHandler);
+                trx.execute();
             } catch (Exception e) {
-                Logger.error(e.getMessage());
+                Logger.error(
+                    'Transaction ' +
+                        key +
+                        ' failed with the following error: ' +
+                        e.getMessage()
+                );
                 this.transactions.put(key, trx);
                 throw e;
             }
+            Logger.info(
+                'Transaction ' +
+                    key +
+                    ' successfully executed with ' +
+                    trx.getRecords().size() +
+                    ' records.'
+            );
         }
     }
 
@@ -99,9 +108,7 @@ public class UnitOfWork {
     @TestVisible
     private List<String> sortTransactions() {
         List<String> keys = new List<String>(this.transactions.keySet());
-        List<ITransaction> values = new List<ITransaction>(
-            this.transactions.values()
-        );
+        List<ITransaction> values = this.getTransactions();
 
         values.sort(
             new UnitOfWork.TransactionOrder(this.controls.sObjectOrder)
@@ -121,16 +128,19 @@ public class UnitOfWork {
         return sortedKeys;
     }
 
+    public List<ITransaction> getTransactions() {
+        return new List<ITransaction>(this.transactions.values());
+    }
+
     /**
      * Registers new records for insertion
      */
     public DmlTransaction registerNew(List<SObject> records) {
-        DmlTransaction trx = (DmlTransaction) this.getTransaction(
-            records.get(0)?.getSObjectType().getDescribe().getName(),
+        DmlTransaction trx = (DmlTransaction) this.newTransaction(
             this.controls.defaultTransactionTypes.get('insert')
         );
         trx.addRecords(records);
-        return trx;
+        return (DmlTransaction) this.addTransaction(trx);
     }
 
     public DmlTransaction registerNew(SObject record) {
@@ -163,13 +173,12 @@ public class UnitOfWork {
         List<SObject> records,
         Schema.SObjectField externalId
     ) {
-        UpsertTransaction trx = (UpsertTransaction) this.getTransaction(
-            records.get(0)?.getSObjectType().getDescribe().getName(),
+        UpsertTransaction trx = (UpsertTransaction) this.newTransaction(
             this.controls.defaultTransactionTypes.get('upsert')
         );
         trx.addRecords(records);
         trx.setExternalId(externalId);
-        return trx;
+        return (DmlTransaction) this.addTransaction(trx);
     }
 
     public DmlTransaction registerNew(
@@ -208,12 +217,11 @@ public class UnitOfWork {
      * Registers new records for update
      */
     public DmlTransaction registerUpdate(List<SObject> records) {
-        DmlTransaction trx = (DmlTransaction) this.getTransaction(
-            records.get(0)?.getSObjectType().getDescribe().getName(),
+        DmlTransaction trx = (DmlTransaction) this.newTransaction(
             this.controls.defaultTransactionTypes.get('update')
         );
         trx.addRecords(records);
-        return trx;
+        return (DmlTransaction) this.addTransaction(trx);
     }
 
     public DmlTransaction registerUpdate(SObject record) {
@@ -244,12 +252,11 @@ public class UnitOfWork {
      * Registers new records for delete
      */
     public DmlTransaction registerDelete(List<SObject> records) {
-        DmlTransaction trx = (DmlTransaction) this.getTransaction(
-            records.get(0)?.getSObjectType().getDescribe().getName(),
+        DmlTransaction trx = (DmlTransaction) this.newTransaction(
             this.controls.defaultTransactionTypes.get('delete')
         );
         trx.addRecords(records);
-        return trx;
+        return (DmlTransaction) this.addTransaction(trx);
     }
 
     public DmlTransaction registerDelete(SObject record) {
@@ -257,83 +264,76 @@ public class UnitOfWork {
     }
 
     public EventTransaction registerPublish(List<SObject> records) {
-        EventTransaction trx = (EventTransaction) this.getTransaction(
-            records.get(0)?.getSObjectType().getDescribe().getName(),
+        EventTransaction trx = (EventTransaction) this.newTransaction(
             this.controls.defaultTransactionTypes.get('event')
         );
         trx.addRecords(records);
-        return trx;
+        return (EventTransaction) this.addTransaction(trx);
     }
 
     public EventTransaction registerPublish(SObject record) {
         return this.registerPublish(new List<SObject>{ record });
     }
 
-    private ITransaction getTransaction(
-        String sObjectType,
-        String transactionType
-    ) {
-        if (
-            !this.transactions.containsKey(
-                UnitOfWork.key(sObjectType, transactionType)
-            )
-        ) {
-            Object typeInstance = TypeFactory.newInstance(transactionType);
-            if (
-                typeInstance == null || !(typeInstance instanceof ITransaction)
-            ) {
-                throw new TransactionException(
-                    'Invalid transaction type: ' + transactionType
-                );
-            }
-
-            ITransaction trx = (ITransaction) typeInstance;
-            trx.setSObjectType(sObjectType);
-            this.addTransaction(trx, transactionType);
+    private ITransaction newTransaction(String transactionType) {
+        Object typeInstance = TypeFactory.newInstance(transactionType);
+        if (typeInstance == null || !(typeInstance instanceof ITransaction)) {
+            throw new TransactionException(
+                'Invalid transaction type: ' + transactionType
+            );
         }
-
-        return this.transactions.get(
-            UnitOfWork.key(sObjectType, transactionType)
-        );
+        return (ITransaction) typeInstance;
     }
 
-    public void addTransaction(ITransaction trx, String transactionType) {
+    private ITransaction getTransaction(String key) {
+        return this.transactions.get(key);
+    }
+
+    /**
+     * Idempotent method to add a transaction to the map
+     * If the transaction already exists, the records are added to the existing transaction
+     *
+     * @param trx The transaction to add
+     * @return The resulting transaction
+     */
+    public ITransaction addTransaction(ITransaction trx) {
+        if (this.transactions.containsKey(trx.key())) {
+            ITransaction existingTrx = this.getTransaction(trx.key());
+            existingTrx.add(trx);
+            return existingTrx;
+        }
+
         if (trx.getOrder() == null) {
             trx.setOrder(this.controls.order());
         }
-        this.transactions.put(
-            UnitOfWork.key(trx.getSObjectType(), transactionType),
-            trx
-        );
-    }
 
-    private static String key(String sObjectType, String transactionType) {
-        return transactionType + '(' + sObjectType + ')';
+        this.transactions.put(trx.key(), trx);
+
+        return trx;
     }
 
     public interface ITransaction {
         void addRecords(List<SObject> records);
         List<SObject> getRecords();
-        void setSObjectType(String sObjectType);
         String getSObjectType();
+        void add(ITransaction trx);
         void setOrder(Integer order);
         Integer getOrder();
-        void execute(IDML dmlHandler);
+        void execute();
+        String key();
     }
 
     public abstract class TransactionUnit implements ITransaction {
         public Integer order;
-        public String sObjectType;
+        protected String sObjectType;
         public List<SObject> records = new List<SObject>();
+        protected IDML dmlHandler;
 
         public TransactionUnit() {
         }
 
         public TransactionUnit(List<SObject> records) {
             this.addRecords(records);
-            this.setSObjectType(
-                records.get(0)?.getSObjectType().getDescribe().getName()
-            );
         }
 
         public void setSObjectType(String sObjectType) {
@@ -341,6 +341,13 @@ public class UnitOfWork {
         }
 
         public String getSObjectType() {
+            if (this.sObjectType == null) {
+                this.sObjectType = this.getRecords()
+                    .get(0)
+                    ?.getSObjectType()
+                    .getDescribe()
+                    .getName();
+            }
             return this.sObjectType;
         }
 
@@ -360,19 +367,97 @@ public class UnitOfWork {
             return this.order;
         }
 
-        public abstract void execute(IDML dmlHandler);
+        public virtual void setHandler(IDML dmlHandler) {
+            this.dmlHandler = dmlHandler;
+        }
+
+        private virtual void verifyTransaction() {
+            if (this.dmlHandler == null) {
+                throw new TransactionException('DML handler is not set');
+            }
+
+            if (this.getRecords().isEmpty()) {
+                throw new TransactionException('No records to process');
+            }
+        }
+
+        public abstract void execute();
+
+        public virtual String key() {
+            return String.valueOf(this).substringBefore(':') +
+                '(' +
+                this.getSObjectType() +
+                ')';
+        }
+
+        public virtual void add(ITransaction trx) {
+            if (this.getSObjectType() != trx.getSObjectType()) {
+                throw new TransactionException(
+                    'Cannot add transaction with different sObjectType'
+                );
+            }
+            this.addRecords(trx.getRecords());
+        }
     }
 
     public abstract class DmlTransaction extends TransactionUnit {
         public Savepoint trxSavePoint;
-        public List<IRelationship> relationships = new List<IRelationship>();
+
+        private List<IHook> preHooks = new List<IHook>();
+        private List<IHook> postHooks = new List<IHook>();
 
         public void rollback() {
             Database.rollback(this.trxSavePoint);
         }
 
-        public Boolean hasRelationship() {
-            return this.relationships.size() > 0;
+        public void setSavepoint() {
+            this.trxSavePoint = Database.setSavepoint();
+        }
+
+        public override void verifyTransaction() {
+            if (this.dmlHandler == null) {
+                this.setHandler((DML) TypeFactory.newInstance('DML'));
+            }
+
+            if (this.getRecords().isEmpty()) {
+                throw new TransactionException('No records to process');
+            }
+        }
+
+        public void addPreHook(IHook hook) {
+            this.preHooks.add(hook);
+        }
+
+        public void addPostHook(IHook hook) {
+            this.postHooks.add(hook);
+        }
+
+        private void executeHooks(List<IHook> hooks) {
+            for (IHook hook : hooks) {
+                hook.call();
+            }
+        }
+
+        private void executePreHooks() {
+            if (this.preHooks.size() == 0) {
+                return;
+            }
+
+            Logger.info('executing pre transaction hooks for ' + this.key());
+            this.executehooks(this.prehooks);
+        }
+
+        private void executePostHooks() {
+            if (this.postHooks.size() == 0) {
+                return;
+            }
+
+            Logger.info('executing post transaction hooks for ' + this.key());
+            this.executehooks(this.postHooks);
+        }
+
+        public void addRelationship(SObjectRelationship relationship) {
+            this.preHooks.add(relationship);
         }
 
         public void setRelationship(
@@ -380,10 +465,8 @@ public class UnitOfWork {
             String relationField,
             SObject relatedTo
         ) {
-            this.setRelationship(
-                new List<SObject>{ record },
-                relationField,
-                relatedTo
+            this.addRelationship(
+                new LookupRelationship(record, relationField, relatedTo)
             );
         }
 
@@ -393,8 +476,8 @@ public class UnitOfWork {
             SObject relatedTo
         ) {
             for (SObject record : records) {
-                this.relationships.add(
-                    new RelationshipDefinition(record, relationField, relatedTo)
+                this.addRelationship(
+                    new LookupRelationship(record, relationField, relatedTo)
                 );
             }
         }
@@ -403,54 +486,35 @@ public class UnitOfWork {
             SObject record,
             String targetField,
             SObject source,
-            String sourceField,
-            Callable resolveHook
+            String sourceField
         ) {
-            this.setRelationship(
-                new List<SObject>{ record },
-                targetField,
-                source,
-                sourceField,
-                resolveHook
+            this.addRelationship(
+                new SObjectRelationship(
+                    record,
+                    targetField,
+                    source,
+                    sourceField
+                )
             );
         }
 
-        public void setRelationship(
-            List<SObject> records,
-            String targetField,
-            sObject source,
-            String sourceField,
-            Callable resolveHook
-        ) {
-            for (SObject target : records) {
-                this.relationships.add(
-                    new UnitOfWork.CustomRelationshipDefinition(
-                        target,
-                        targetField,
-                        source,
-                        sourceField,
-                        resolveHook
-                    )
-                );
-            }
-        }
-
-        public void resolveRelationships() {
-            for (IRelationship rel : this.relationships) {
-                rel.resolve();
+        public override void add(ITransaction trx) {
+            super.add(trx);
+            if (trx instanceof DmlTransaction) {
+                this.preHooks.addAll(((DmlTransaction) trx).preHooks);
+                this.postHooks.addAll(((DmlTransaction) trx).postHooks);
             }
         }
     }
 
     public class InsertTransaction extends DmlTransaction {
-        public override void execute(IDML dmlHandler) {
-            this.trxSavePoint = Database.setSavepoint();
+        public override void execute() {
+            this.verifyTransaction();
+            this.setSavepoint();
 
-            if (this.hasRelationship()) {
-                this.resolveRelationships();
-            }
-
-            dmlHandler.doInsert(this.records);
+            this.executePreHooks();
+            this.dmlHandler.doInsert(this.records);
+            this.executePostHooks();
         }
     }
 
@@ -461,53 +525,98 @@ public class UnitOfWork {
             this.externalIdField = externalIdField;
         }
 
-        public override void execute(IDML dmlHandler) {
-            this.trxSavePoint = Database.setSavepoint();
-
-            if (this.hasRelationship()) {
-                this.resolveRelationships();
-            }
+        public override void execute() {
+            this.verifyTransaction();
+            this.setSavepoint();
+            this.executePreHooks();
 
             if (this.externalIdField != null) {
-                dmlHandler.doUpsert(this.records, this.externalIdField);
+                this.dmlHandler.doUpsert(this.records, this.externalIdField);
             } else {
-                dmlHandler.doUpsert(this.records);
+                this.dmlHandler.doUpsert(this.records);
             }
+
+            this.executePostHooks();
+        }
+
+        public override String key() {
+            if (externalIdField == null) {
+                return super.key();
+            }
+
+            return String.valueOf(this).substringBefore(':') +
+                '(' +
+                this.getSObjectType() +
+                '.' +
+                this.externalIdField.toString() +
+                ')';
         }
     }
 
     public class UpdateTransaction extends DmlTransaction {
-        public override void execute(IDML dmlHandler) {
-            this.trxSavePoint = Database.setSavepoint();
+        public override void execute() {
+            this.verifyTransaction();
+            this.setSavepoint();
 
-            if (this.hasRelationship()) {
-                this.resolveRelationships();
-            }
-
-            dmlHandler.doUpdate(this.records);
+            this.executePreHooks();
+            this.dmlHandler.doUpdate(this.records);
+            this.executePostHooks();
         }
     }
 
     public class DeleteTransaction extends DmlTransaction {
-        public override void execute(IDML dmlHandler) {
-            this.trxSavePoint = Database.setSavepoint();
+        public override void execute() {
+            this.verifyTransaction();
+            this.setSavepoint();
 
-            dmlHandler.doDelete(this.records);
+            this.executePreHooks();
+            this.dmlHandler.doDelete(this.records);
+            this.executePostHooks();
         }
     }
 
     public class EventTransaction extends TransactionUnit {
-        public override void execute(IDML dmlHandler) {
-            dmlHandler.doPublish(this.records);
+        public override void verifyTransaction() {
+            if (this.dmlHandler == null) {
+                this.setHandler((DML) TypeFactory.newInstance('DML'));
+            }
+
+            if (this.getRecords().isEmpty()) {
+                throw new TransactionException('No records to process');
+            }
+        }
+
+        public override void execute() {
+            this.verifyTransaction();
+            this.dmlHandler.doPublish(this.records);
         }
     }
 
-    public interface IRelationship {
-        SObject resolve();
+    public interface IHook {
+        Object call();
     }
 
-    public class RelationshipDefinition extends CustomRelationshipDefinition {
-        public RelationshipDefinition(
+    public abstract class Hook implements IHook, Callable {
+        Map<String, Object> args;
+        String action;
+
+        public void setArgs(Map<String, Object> args) {
+            this.args = args;
+        }
+
+        public void setAction(String action) {
+            this.action = action;
+        }
+
+        public virtual Object call() {
+            return (SObject) this.call(this.action, this.args);
+        }
+
+        public abstract Object call(String action, Map<String, Object> args);
+    }
+
+    public class LookupRelationship extends SObjectRelationship {
+        public LookupRelationship(
             sObject record,
             String relationField,
             sObject relatedTo
@@ -516,50 +625,41 @@ public class UnitOfWork {
         }
     }
 
-    public virtual class CustomRelationshipDefinition implements IRelationship {
-        public SObject source;
-        public String sourceField;
-        public SObject target;
-        public String targetField;
-        public Callable resolveHook;
+    public virtual class SObjectRelationship extends Hook {
+        public SObjectRelationship() {
+        }
 
-        public CustomRelationshipDefinition(
+        public SObjectRelationship(
             sObject target,
             String targetField,
             sObject source,
             String sourceField
         ) {
-            this(target, targetField, source, sourceField, null);
+            this.setAction('resolve');
+            this.setArgs(
+                new Map<String, Object>{
+                    'source' => source,
+                    'sourceField' => sourceField,
+                    'target' => target,
+                    'targetField' => targetField
+                }
+            );
         }
 
-        public CustomRelationshipDefinition(
-            sObject target,
-            String targetField,
-            sObject source,
-            String sourceField,
-            Callable resolveHook
-        ) {
-            this.target = target;
-            this.targetField = targetField;
-            this.source = source;
-            this.sourceField = sourceField;
-            this.resolveHook = resolveHook;
-        }
+        /**
+         * Generic implementation of SObject1.field1 = SObject2.field2
+         */
+        public override Object call(String action, Map<String, Object> args) {
+            if (action == 'resolve') {
+                SObject source = (SObject) args.get('source');
+                String sourceField = (String) args.get('sourceField');
+                SObject target = (SObject) args.get('target');
+                String targetField = (String) args.get('targetField');
 
-        public virtual SObject resolve() {
-            if (resolveHook != null) {
-                this.target.put(
-                    targetField,
-                    this.resolveHook.call(
-                        this.sourceField,
-                        new Map<String, Object>{ 'source' => this.source }
-                    )
-                );
-            } else {
-                this.target.put(targetField, source.get(sourceField));
+                return target.put(targetField, source.get(sourceField));
             }
 
-            return this.target;
+            return null;
         }
     }
 
@@ -570,13 +670,29 @@ public class UnitOfWork {
             this.sObjectOrder = sObjectOrder;
         }
 
-        public Integer compare(ITransaction trx_1, ITransaction trx_2) {
+        public Integer compare(ITransaction trx1, ITransaction trx2) {
             if (this.sObjectOrder != null) {
-                return this.sObjectOrder.indexOf(trx_1.getSObjectType()) -
-                    this.sObjectOrder.indexOf(trx_2.getSObjectType());
+                Integer index1 = this.sObjectOrder.indexOf(
+                    trx1.getSObjectType()
+                );
+                Integer index2 = this.sObjectOrder.indexOf(
+                    trx2.getSObjectType()
+                );
+
+                if (index1 != -1 && index2 != -1) {
+                    return index1 - index2;
+                }
+
+                if (index1 != -1) {
+                    return -1;
+                }
+
+                if (index2 != -1) {
+                    return 1;
+                }
             }
 
-            return trx_1.getOrder() - trx_2.getOrder();
+            return trx1.getOrder() - trx2.getOrder();
         }
     }
 }
