@@ -2,8 +2,10 @@ public abstract class SObjectSelector {
     public String sObjectType;
     public List<String> defaultFields;
 
-    public SObjectSelector() {
-    }
+    System.AccessLevel accessLevel = System.AccessLevel.SYSTEM_MODE;
+
+    @TestVisible
+    protected QueryBuilder builder;
 
     public SObjectSelector(String sObjectType) {
         this.sObjectType = sObjectType;
@@ -13,6 +15,28 @@ public abstract class SObjectSelector {
     public SObjectSelector(String sObjectType, List<String> fields) {
         this.sObjectType = sObjectType;
         this.defaultFields = fields;
+    }
+
+    public SObjectSelector(ISchemaSObject schema) {
+        this.sObjectType = schema.getQuerySObject();
+        this.defaultFields = schema.getQueryFields();
+    }
+
+    public class QueryException extends Exception {
+        String query;
+
+        public QueryException(String message, String query) {
+            this.setMessage(message);
+            this.query = query;
+        }
+    }
+
+    public System.AccessLevel getAccessLevel() {
+        return this.accessLevel;
+    }
+
+    public String getQuery() {
+        return this.builder.getQuery().toString();
     }
 
     public virtual List<SObject> getWhere(String field, Object value) {
@@ -38,4 +62,19 @@ public abstract class SObjectSelector {
 
         return Database.query(builder.toString());
     }
+
+    public virtual List<SObject> query() {
+        return Database.queryWithBinds(
+            this.builder.getQuery().toString(),
+            this.builder.getVariables(),
+            this.getAccessLevel()
+        );
+    }
+
+    /**
+     * Future implementation
+     */
+    // public virtual List<List<SObject>> search() {
+    //     return Search.find(this.getQuery(), this.getAccessLevel())
+    // }
 }
