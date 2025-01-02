@@ -132,7 +132,7 @@ public class UnitOfWorkTest {
 
         Test.stopTest();
 
-        Assert.areEqual(c.AccountId, a.Id);
+        Assert.areEqual(a.Id, c.AccountId);
         mocker.assertCalled(mockDml, 'doInsert', 2);
     }
 
@@ -205,11 +205,12 @@ public class UnitOfWorkTest {
     static void testSObjectOrder() {
         Mocker mocker = new Mocker();
         DML mockDml = (DML) mocker.mock('DML');
+        TypeFactory.setMock('DML', mockDml);
 
         UnitOfWork.TransactionControls controls = new UnitOfWork.TransactionControls();
         controls.sObjectOrder = new List<String>{ 'Account', 'Contact' };
 
-        UnitOfWork uow = new UnitOfWork(mockDml, controls);
+        UnitOfWork uow = new UnitOfWork(controls);
         Account account = (Account) new TestFactory('Account')
             .createRecords(1)
             .setField('Name', 'Dunder Mifflin')
@@ -229,14 +230,8 @@ public class UnitOfWorkTest {
         List<String> sortedKeys = uow.sortTransactions();
         Test.stopTest();
 
-        Assert.areEqual(
-            'UnitOfWork.UpdateTransaction(Account)',
-            sortedKeys.get(0)
-        );
-        Assert.areEqual(
-            'UnitOfWork.InsertTransaction(Contact)',
-            sortedKeys.get(1)
-        );
+        Assert.areEqual('UpdateTransaction(Account)', sortedKeys.get(0));
+        Assert.areEqual('InsertTransaction(Contact)', sortedKeys.get(1));
     }
 
     public class CustomTestTransaction extends UnitOfWork.TransactionUnit {
@@ -246,9 +241,9 @@ public class UnitOfWorkTest {
             super(records);
         }
 
-        public override void execute(IDML dmlHandler) {
+        public override void execute() {
             this.myProp = 'custom insert';
-            dmlHandler.doInsert(this.records);
+            this.dmlHandler.doInsert(this.records);
         }
     }
 
@@ -265,13 +260,14 @@ public class UnitOfWorkTest {
         a.Name = 'Dunder Mifflin';
 
         Test.startTest();
-        UnitOfWork.ITransaction customTransaction = (UnitOfWork.ITransaction) new UnitOfWorkTest.CustomTestTransaction(
+        UnitOfWorkTest.CustomTestTransaction customTransaction = new UnitOfWorkTest.CustomTestTransaction(
             new List<SObject>{ a }
         );
-        uow.addTransaction(customTransaction, 'MyCustomTransaction');
+        customTransaction.setHandler(mockDml);
+        uow.addTransaction(customTransaction);
 
         Assert.areEqual(
-            'MyCustomTransaction(Account)',
+            'CustomTestTransaction(Account)',
             new List<String>(uow.transactions.keySet()).get(0)
         );
 
