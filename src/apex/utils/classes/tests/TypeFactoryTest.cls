@@ -45,4 +45,19 @@ public class TypeFactoryTest {
         Assert.isTrue(clsInstance instanceof TypeFactoryTest);
         Assert.isTrue(mockInstance instanceof MyMockClass);
     }
+
+    @IsTest
+    static void testGetInstance() {
+        Test.startTest();
+        TypeFactory.setMock('TypeFactoryTest', new MyMockClass());
+        Object mockInstance = TypeFactory.getInstance(TypeFactoryTest.class);
+        Object mockInstance2 = TypeFactory.getInstance('TypeFactoryTest');
+
+        Test.stopTest();
+        Assert.isTrue(mockInstance instanceof MyMockClass);
+        Assert.isTrue(
+            mockInstance2 == mockInstance,
+            'getInstance should return the same instance'
+        );
+    }
 }
