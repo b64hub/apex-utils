@@ -149,7 +149,7 @@ public virtual class HttpClient implements IHttpClient.Callout, IHttpClient.Call
 
     public virtual class RequestBuilder {
         public HttpRequest request;
-        private List<String> registeredHeaders = new List<String>();
+        private Map<String, String> registeredHeaders = new Map<String, String>();
 
         public RequestBuilder(HttpRequest request) {
             this.request = request;
@@ -157,25 +157,6 @@ public virtual class HttpClient implements IHttpClient.Callout, IHttpClient.Call
 
         public RequestBuilder() {
             this.request = new HttpRequest();
-        }
-
-        public virtual RequestBuilder fromConfig(CalloutConfig params) {
-            if (params.method != null) {
-                this.request.setMethod(params.method);
-            }
-            if (params.endpoint != null) {
-                this.request.setEndpoint(params.endpoint);
-            }
-            if (params.timeout != null) {
-                this.request.setTimeout(params.timeout);
-            }
-            if (params.body != null) {
-                this.request.setBody(params.body);
-            }
-            if (params.headers != null) {
-                this.setHeaders(params.headers);
-            }
-            return this;
         }
 
         public RequestBuilder setEndpoint(IUrl url) {
@@ -195,11 +176,15 @@ public virtual class HttpClient implements IHttpClient.Callout, IHttpClient.Call
                     continue;
                 }
 
-                this.request.setHeader(key, headerValue);
-                this.registeredHeaders.add(key);
+                this.setHeader(key, headerValue);
             }
 
             return this;
+        }
+
+        private void setHeader(String key, String value) {
+            this.request.setHeader(key, value);
+            this.registeredHeaders.put(key, value);
         }
 
         /**
@@ -236,32 +221,12 @@ public virtual class HttpClient implements IHttpClient.Callout, IHttpClient.Call
                 throw new InvalidUrlException('Unsupported content type');
             }
 
-            this.request.setHeader('Content-Type', contentHeader);
-            this.registeredHeaders.add('Content-Type');
+            this.setHeader('Content-Type', contentHeader);
             return this;
         }
 
         public HttpRequest getRequest() {
             return this.request;
-        }
-
-        public virtual String toJson() {
-            CalloutConfig config = new CalloutConfig();
-            config.method = this.request.getMethod();
-            config.endpoint = this.request.getEndpoint();
-            config.body = this.request.getBody();
-            for (String key : this.registeredHeaders) {
-                config.headers.put(key, this.request.getHeader(key));
-            }
-
-            return new JSONConfigParser().toJson(config);
-        }
-
-        public virtual RequestBuilder fromJson(String configJson) {
-            return this.fromConfig(
-                new JSONConfigParser()
-                    .fromJson(configJson, HttpClient.CalloutConfig.class)
-            );
         }
     }
 
@@ -301,100 +266,5 @@ public virtual class HttpClient implements IHttpClient.Callout, IHttpClient.Call
                 'Callout failed with status code ' + response.getStatusCode()
             );
         }
-    }
-
-    public class JSONConfigParser {
-        public CalloutConfig fromJson(String configJson, Type configType) {
-            CalloutConfig config = (CalloutConfig) JSON.deserialize(
-                configJson,
-                configType
-            );
-            config.headers = this.getHeadersFromJson(configJson);
-            return config;
-        }
-
-        private Map<String, String> getHeadersFromJson(String configJson) {
-            Map<String, Object> sourceHeaders = (Map<String, Object>) ((Map<String, Object>) JSON.deserializeUntyped(
-                    configJson
-                ))
-                .get('headers');
-
-            Map<String, String> headers = new Map<String, String>();
-            if (sourceHeaders == null) {
-                return headers;
-            }
-
-            for (String key : sourceHeaders.keySet()) {
-                headers.put(key, String.valueOf(sourceHeaders.get(key)));
-            }
-
-            return headers;
-        }
-
-        public String toJson(CalloutConfig config) {
-            return JSON.serialize(config);
-        }
-    }
-
-    public virtual class CalloutConfig {
-        public String method;
-        public String endpoint;
-        public Map<String, String> headers = new Map<String, String>();
-        public String body;
-        public Integer timeout = 120000;
-    }
-
-    public class AsyncCalloutConfig extends CalloutConfig {
-        public String callbackClass = 'HttpClient';
-    }
-
-    @Future(callout=true)
-    public static void asyncCallout(String asyncConfigJson) {
-        Logger.info('Making async callout ' + asyncConfigJson);
-        try {
-            ((HttpClient) TypeFactory.newInstance('HttpClient'))
-                .doAsyncCallout(asyncConfigJson);
-        } catch (Exception e) {
-            Logger.error(e.getMessage());
-        }
-    }
-
-    /**
-     * @description Make an async callout
-     *
-     * @param config
-     */
-    @TestVisible
-    private void doAsyncCallout(String configJson) {
-        AsyncCalloutConfig config = (AsyncCalloutConfig) new JSONConfigParser()
-            .fromJson(configJson, HttpClient.AsyncCalloutConfig.class);
-
-        System.debug(config);
-
-        HttpRequest request = new HttpClient.RequestBuilder(new HttpRequest())
-            .fromConfig(config)
-            .getRequest();
-
-        HttpResponse response = new HttpClient().callout(request);
-
-        if (config.callbackClass == null) {
-            return;
-        }
-
-        IHttpClient.Callback callback = (IHttpClient.Callback) TypeFactory.newInstance(
-            config.callbackClass
-        );
-        callback.callback(response);
-    }
-
-    /**
-     * @description Retry a callout
-     *
-     * @param request
-     */
-    public void retry(HttpRequest request) {
-        String asyncConfigJson = new RequestBuilder(request).toJson();
-        Logger.info('Retrying callout ' + asyncConfigJson);
-        HttpClient.asyncCallout(asyncConfigJson);
     }
 }
