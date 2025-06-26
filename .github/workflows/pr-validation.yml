@@ -9,10 +9,22 @@ on:
       - "src/**"
   workflow_dispatch:
 
+permissions:
+  pull-requests: write
+  contents: read
+  actions: read
+
 jobs:
   validate:
     name: "Validate metadata"
+    if: github.event.pull_request.draft == false
     uses: b64hub/sf-actions/.github/workflows/simple-validate.yml@main
     with:
       source-dir: src/apex/utils
+    secrets: inherit
+
+  code-analysis:
+    name: "Code Analysis"
+    if: github.event.pull_request.draft == false
+    uses: b64hub/sf-actions/.github/workflows/code-analysis.yml@main
     secrets: inherit

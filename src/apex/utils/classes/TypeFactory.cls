@@ -1,7 +1,5 @@
 public class TypeFactory {
-    public TypeFactory() {
-    }
-
+    private static Map<String, Object> singletons = new Map<String, Object>();
     @TestVisible
     private static Map<String, Object> mocks = new Map<String, Object>();
 
@@ -29,5 +27,22 @@ public class TypeFactory {
 
     public static Object newInstance(Type classType) {
         return newInstance(classType.getName());
+    }
+
+    public static Object getInstance(String className) {
+        Object classInstance;
+
+        if (singletons.containsKey(className)) {
+            return singletons.get(className);
+        }
+
+        classInstance = newInstance(className);
+        singletons.put(className, classInstance);
+
+        return classInstance;
+    }
+
+    public static Object getInstance(Type classType) {
+        return getInstance(classType.getName());
     }
 }

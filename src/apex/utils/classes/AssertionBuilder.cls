@@ -8,6 +8,13 @@ public virtual class AssertionBuilder {
     Boolean minimum = false;
     Boolean maximum = false;
 
+    public AssertionBuilder() {
+    }
+
+    public AssertionBuilder(Mocker.IMockedMethod methodCall) {
+        this.begin(methodCall);
+    }
+
     /**
      * Begins the assertion building process
      */
@@ -26,16 +33,40 @@ public virtual class AssertionBuilder {
         this.argSpecificTimes = 0;
 
         for (Map<String, Object> callArgs : this.methodCall.getCallHistory()) {
-            if (
-                args == callArgs ||
-                args.equals(callArgs) ||
-                System.hashCode(args) == System.hashCode(callArgs)
-            ) {
+            if (AssertionBuilder.compareArgs(args, callArgs)) {
                 this.argSpecificTimes++;
             }
         }
 
         return this;
+    }
+
+    /**
+     * @description Compares the args to see if they are the same
+     * args can be complex objects, and due to some obsucrities in the apex langugae
+     * the hashcode can be different for the same object (and differences if in debug mode or not!!),
+     * so we attempt to serialize the object and compare the serialized values
+     */
+    private static Boolean compareArgs(
+        Map<String, Object> referenceArgs,
+        Map<String, Object> checkArgs
+    ) {
+        if (referenceArgs == checkArgs) {
+            return true;
+        }
+
+        if (System.hashCode(referenceArgs) == System.hashCode(checkArgs)) {
+            return true;
+        }
+
+        try {
+            if (JSON.serialize(referenceArgs) == JSON.serialize(checkArgs)) {
+                return true;
+            }
+        } catch (System.JSONException e) {
+        }
+
+        return false;
     }
 
     /**
@@ -174,5 +205,12 @@ public virtual class AssertionBuilder {
             'Method ' + this.methodCall.getMethodName() + ' was never called'
         );
         return;
+    }
+
+    /**
+     * @description Alias for verify
+     */
+    public virtual void assert() {
+        this.verify();
     }
 }

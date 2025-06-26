@@ -1,3 +1,4 @@
+@SuppressWarnings('PMD.ExcessivePublicCount')
 public class QueryBuilder {
     private Query query;
     public Config config = new Config();
@@ -9,7 +10,9 @@ public class QueryBuilder {
     }
 
     public QueryBuilder(Schema.SObjectType sObjectType) {
-        this.query = new Query(sObjectType.getDescribe().getName());
+        this.query = new Query(
+            sObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getName()
+        );
         this.query.filterChain = this.config.defaultChain;
     }
 
@@ -103,6 +106,10 @@ public class QueryBuilder {
             }
         }
 
+        public Condition(Schema.SObjectField field) {
+            this.field = field.getDescribe().getName();
+        }
+
         public String equals(Object value) {
             this.operator = '=';
             return this.setValue(value);
@@ -139,13 +146,13 @@ public class QueryBuilder {
         }
 
         private String setValue(Object value) {
-            this.value = String.valueOf(value);
+            this.value = value;
             this.expression =
                 this.field +
                 ' ' +
                 this.operator +
                 ' ' +
-                this.value;
+                String.valueOf(value);
             return this.expression;
         }
 
@@ -201,9 +208,6 @@ public class QueryBuilder {
     public class ConditionBuilder implements ICondition {
         ConditionNode root;
 
-        public ConditionBuilder() {
-        }
-
         public ConditionBuilder addNode(String logical, ConditionNode node) {
             if (this.root == null) {
                 this.root = node;
@@ -245,8 +249,20 @@ public class QueryBuilder {
         return this;
     }
 
+    public QueryBuilder selectFields(List<Schema.SObjectField> fields) {
+        for (Schema.SObjectField field : fields) {
+            this.query.fields.add(field.getDescribe().getName());
+        }
+        return this;
+    }
+
     public QueryBuilder selectField(String field) {
         this.query.fields.add(field);
+        return this;
+    }
+
+    public QueryBuilder selectField(Schema.SObjectField field) {
+        this.query.fields.add(field.getDescribe().getName());
         return this;
     }
 
@@ -262,6 +278,37 @@ public class QueryBuilder {
 
     public QueryBuilder addSubQuery(IQuery query) {
         this.query.subQueries.add(query);
+        return this;
+    }
+
+    public QueryBuilder addSubQuery(String relationShipName, Query query) {
+        query.sObjectType = relationShipName;
+        return this.addSubQuery(query);
+    }
+
+    public QueryBuilder addSubQuery(
+        String relationShipName,
+        List<String> fields
+    ) {
+        Query subQuery = new Query(relationShipName);
+        subQuery.fields.addAll(fields);
+        return this.addSubQuery(subQuery);
+    }
+
+    public QueryBuilder addParentFields(String relationShipName, Query query) {
+        for (String field : query.fields) {
+            this.query.fields.add(relationShipName + '.' + field);
+        }
+        return this;
+    }
+
+    public QueryBuilder addParentFields(
+        String relationShipName,
+        List<String> fields
+    ) {
+        for (String field : fields) {
+            this.query.fields.add(relationShipName + '.' + field);
+        }
         return this;
     }
 
